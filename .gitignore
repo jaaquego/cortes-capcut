@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Arquivos temporarios / scratch de depuracao
+*.log
+*.png
+estado*.png
+editor*.png
+export_dialog*.png
+
+# Saidas locais (nao versionar videos)
+*.mp4
