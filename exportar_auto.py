@@ -98,10 +98,9 @@ def _fechar_dialogo_pos_export():
     e fica tocando o video. Fecha clicando em 'Cancelar'.
     Logo apos o export esse pop-up ja esta em primeiro plano, entao lemos a tela
     COMO ESTA (sem ficar alternando janelas, o que esconderia o pop-up)."""
-    from PIL import ImageGrab
     import time as _t
     for tent in range(8):
-        itens = ocr_tela.ler(im=ImageGrab.grab())
+        itens = ocr_tela.ler(im=auto._grab())
         canc = auto.achar(itens, "cancelar")
         compart = auto.achar(itens, "compartilhar", "tiktok", "youtube")
         if canc and compart:
@@ -177,6 +176,9 @@ def executar(cb=None, abrir=False):
                            "(ou havia mais de um projeto aberto). "
                            "Deixe aberto só o projeto certo e tente de novo.")
     n = _contar_clipes(raiz)
+    # limpa a tela: minimiza as janelas do CapCut no fim
+    try: auto.focuswin.minimizar_capcuts()
+    except Exception: pass
     if abrir and raiz and os.path.isdir(raiz):
         try: os.startfile(raiz)
         except Exception: pass

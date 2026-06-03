@@ -74,6 +74,7 @@ class App:
         self._build()
         self._center(440, 580)
         self._tick()
+        self.root.after(300, self._reposicionar)   # forca canto inf. direito (win32)
         self.root.after(120, self._poll)
         if not DEMO:
             self._preload_ocr()   # carrega o modelo de OCR em segundo plano
@@ -144,6 +145,23 @@ class App:
         self.btn_lb.pack(pady=11)
         self._btn_enable(True)
 
+    def _reposicionar(self):
+        """Forca a janela pro canto inferior direito + topmost (via win32, confiavel)."""
+        try:
+            import win32gui, win32api, win32con
+            h = win32gui.FindWindow(None, "Cortes CapCut")
+            if not h:
+                return
+            sw = win32api.GetSystemMetrics(0)
+            sh = win32api.GetSystemMetrics(1)
+            l, t, r, b = win32gui.GetWindowRect(h)
+            ww, hh = r - l, b - t
+            x = max(0, sw - ww - 18)
+            y = max(0, sh - hh - 55)
+            win32gui.SetWindowPos(h, win32con.HWND_TOPMOST, x, y, 0, 0, win32con.SWP_NOSIZE)
+        except Exception:
+            pass
+
     def _load_logo(self, size):
         try:
             from PIL import Image, ImageTk
@@ -154,11 +172,17 @@ class App:
 
     def _center(self, w, h):
         self.root.update_idletasks()
-        sw = self.root.winfo_screenwidth()
-        sh = self.root.winfo_screenheight()
-        x = (sw - w) // 2
-        y = (sh - h) // 3
+        try:
+            import win32api
+            sw = win32api.GetSystemMetrics(0)
+            sh = win32api.GetSystemMetrics(1)
+        except Exception:
+            sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        # canto inferior direito (longe dos botoes que clico no CapCut)
+        x = max(0, sw - w - 20)
+        y = max(0, sh - h - 60)
         self.root.geometry(f"{w}x{h}+{x}+{y}")
+        self.root.attributes("-topmost", True)   # sempre visivel por cima
 
     # ---------- botao ----------
     def _btn_enable(self, on, texto=None):
@@ -300,8 +324,7 @@ class App:
         try:
             self.root.deiconify()
             self.root.lift()
-            self.root.attributes("-topmost", True)
-            self.root.after(400, lambda: self.root.attributes("-topmost", False))
+            self.root.attributes("-topmost", True)   # mantem sempre por cima
         except Exception:
             pass
 

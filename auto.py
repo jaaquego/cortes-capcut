@@ -15,12 +15,19 @@ import win32gui, win32con, win32api
 import pyautogui
 import focuswin
 import ocr_tela
-from PIL import ImageGrab
+from PIL import ImageGrab, ImageDraw
 
 pyautogui.FAILSAFE = True
 pyautogui.PAUSE = 0.15
 
 _HWND = None
+GUI_HWND = None   # janela do nosso app (mascarada nas leituras de OCR)
+
+
+def _grab():
+    """Captura a tela inteira. (O app fica num canto e nao tem palavras-gatilho,
+    entao nao atrapalha o OCR — nao precisa mascarar.)"""
+    return ImageGrab.grab()
 KW = ("criar projeto", "exportar", "projetos", "inicio", "modelos",
       "duracao", "tamanho", "espacos", "mais ferramentas")
 
@@ -56,12 +63,14 @@ def garantir_capcut(verbose=True, preferir=None, evitar=None, exigir=None, exclu
     sw = win32api.GetSystemMetrics(0)
     sh = win32api.GetSystemMetrics(1)
     seen = set()
+    restaurados = []   # janelas-shell que destampei testando (minimizo as descartadas)
     for h in ordem:
         if h in seen:
             continue
         seen.add(h)
         try:
             win32gui.ShowWindow(h, win32con.SW_RESTORE)
+            restaurados.append(h)
         except Exception:
             continue
         time.sleep(0.15)
@@ -77,7 +86,7 @@ def garantir_capcut(verbose=True, preferir=None, evitar=None, exigir=None, exclu
         time.sleep(0.5)
         if win32gui.GetForegroundWindow() != h:
             continue
-        itens = ocr_tela.ler(im=ImageGrab.grab())
+        itens = ocr_tela.ler(im=_grab())
         ok = _e_conteudo(itens)
         if exigir:
             ok = ok and achar(itens, exigir) is not None
@@ -88,6 +97,11 @@ def garantir_capcut(verbose=True, preferir=None, evitar=None, exigir=None, exclu
                   f"hits={_hits(itens)} textos={len([i for i in itens if i['conf']>0.5])} -> {'OK' if ok else 'skip'}")
         if ok:
             _HWND = h
+            # minimiza as shells que destampei testando (deixa so' a janela boa)
+            for outro in restaurados:
+                if outro != h:
+                    try: win32gui.ShowWindow(outro, win32con.SW_MINIMIZE)
+                    except Exception: pass
             return h, itens
     raise RuntimeError("Nao achei a janela de conteudo do CapCut" + (f" com {exigir!r}" if exigir else ""))
 
@@ -117,7 +131,10 @@ def _bbox():
 
 
 def ler():
-    return ocr_tela.ler(bbox=_bbox())
+    bbox = _bbox()
+    if bbox is None:
+        return ocr_tela.ler(im=_grab())   # tela cheia, mascarando o app
+    return ocr_tela.ler(bbox=bbox)
 
 
 def achar(itens, *alvos, contem=True, minconf=0.4):

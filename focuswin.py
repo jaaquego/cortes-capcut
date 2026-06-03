@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Acha e foca a janela do EDITOR do CapCut (nao a launcher/shell em branco)."""
+import os
 import time
 import win32api, win32con, win32gui, win32process
 
@@ -87,11 +88,14 @@ def focar(hwnd=None):
     def _traz():
         try:
             # se a janela do topo NAO e' do CapCut, minimiza pra tirar da frente
+            # (mas NUNCA minimiza uma janela do nosso proprio processo = o app)
             fg = win32gui.GetForegroundWindow()
             if fg and fg not in capcuts:
-                try: win32gui.ShowWindow(fg, win32con.SW_MINIMIZE)
-                except Exception: pass
-                time.sleep(0.15)
+                _, fgpid = win32process.GetWindowThreadProcessId(fg)
+                if fgpid != os.getpid():
+                    try: win32gui.ShowWindow(fg, win32con.SW_MINIMIZE)
+                    except Exception: pass
+                    time.sleep(0.15)
             th_fg, _ = win32process.GetWindowThreadProcessId(win32gui.GetForegroundWindow())
             th_alvo, _ = win32process.GetWindowThreadProcessId(hwnd)
             cur = win32api.GetCurrentThreadId()
@@ -123,6 +127,19 @@ def focar(hwnd=None):
 
 def rect(hwnd):
     return win32gui.GetWindowRect(hwnd)
+
+
+def minimizar_capcuts(exceto=None):
+    """Minimiza todas as janelas visiveis do CapCut (limpa a tela no fim).
+    `exceto` = hwnd a deixar como esta."""
+    for h in _capcut_hwnds():
+        if h == exceto:
+            continue
+        try:
+            if win32gui.IsWindowVisible(h):
+                win32gui.ShowWindow(h, win32con.SW_MINIMIZE)
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
