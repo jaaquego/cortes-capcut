@@ -105,10 +105,15 @@ def garantir_editor(timeout=30):
 
 
 def _bbox():
-    if _HWND is None:
+    # se nao temos handle ou ele ficou invalido (a janela do CapCut troca de
+    # identificador ao abrir o dialogo de export), captura a tela inteira.
+    if _HWND is None or not win32gui.IsWindow(_HWND):
         return None
-    l, t, r, b = focuswin.rect(_HWND)
-    return (max(0, l), max(0, t), r, b)
+    try:
+        l, t, r, b = focuswin.rect(_HWND)
+        return (max(0, l), max(0, t), r, b)
+    except Exception:
+        return None
 
 
 def ler():

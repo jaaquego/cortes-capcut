@@ -11,15 +11,20 @@ Então a estratégia é: **exportar a timeline inteira 1 vez → cortar com o ff
 nos timecodes exatos de cada vídeo (do fim de um rótulo até o início do próximo).
 O resultado é idêntico ao corte manual com I/O — o rótulo (~1,8s) fica de fora.
 
-## Uso recomendado: toque zero (`Exportar Automatico.bat`)
+## Uso recomendado: o app (`exportador_gui.py`)
 
-Há um atalho **"Exportar Cortes CapCut"** na Área de Trabalho (ícone próprio).
-Ou use o `Exportar Automatico.bat` na pasta do projeto. Para recriar o atalho:
-`py gerar_icone.py` (gera `icon.ico`) e rode o trecho do WScript.Shell do README/histórico.
+Há um atalho **"Exportar Cortes CapCut"** na Área de Trabalho (ícone próprio) que
+abre um **app pequeno e moderno** (`exportador_gui.py`, via `pythonw`, sem console).
 
 1. No CapCut, **abra o projeto** (deixe ele aberto na timeline; feche os outros).
-2. Dê 2 cliques no atalho **"Exportar Cortes CapCut"** (ou no `.bat`).
-   Durante os ~15s de cliques, não mexa no mouse; no resto, use o PC normal.
+2. Abra o app pelo atalho e clique em **▶ Começar**.
+3. O app mostra o passo a passo (spinner animado) e, no fim, um **link clicável**
+   pra pasta dos cortes. Durante os ~15s de cliques, não mexa no mouse;
+   no resto (gerar/cortar), use o PC normalmente.
+
+Versão "console" (debug): `Exportar Automatico.bat` ou `py exportar_auto.py`.
+Recriar o atalho: gere o ícone com `py gerar_icone.py` e aponte um atalho do
+`pythonw.exe` pra `exportador_gui.py` (ver histórico do WScript.Shell).
 3. O programa faz tudo sozinho:
    - acha a janela do editor do CapCut (lê a tela com OCR),
    - clica **Exportar** e **confirma** (o CapCut exporta a timeline inteira),
@@ -78,8 +83,10 @@ podem estar em vários formatos (`ESTRUTURA 1 ... V3`, `Estrutura1 V3`, etc.).
 
 ## Arquivos
 
-- `Exportar Automatico.bat` — fluxo toque zero (2 cliques, com o projeto aberto)
-- `exportar_auto.py` — orquestra: aciona o export na UI + corta/organiza/sobe
+- `exportador_gui.py` — **o app** (janela com botão, spinner, passos e link da pasta)
+- `Exportar Automatico.bat` — versão console (debug) do mesmo fluxo
+- `exportar_auto.py` — orquestra: `executar(cb)` aciona o export na UI + corta/organiza/sobe
+- `gerar_icone.py` / `icon.ico` — ícone do atalho
 - `auto.py` — motor de UI (acha/foca a janela certa do CapCut, OCR, clique)
 - `ocr_tela.py` — captura a tela + OCR (rapidocr)
 - `focuswin.py` — traz a janela do CapCut pra frente (vence o foreground lock)

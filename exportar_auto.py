@@ -15,13 +15,25 @@ O programa:
 Uso:  py exportar_auto.py        (com o projeto aberto no CapCut)
 """
 import os, sys, time
-sys.stdout.reconfigure(encoding="utf-8")
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 import auto
 import ocr_tela
 import exportar
 import vigiar
 import split
+
+# Rotulos dos passos (sem as palavras que o OCR procura no CapCut:
+# 'exportar', 'cancelar', etc. — pra interface nao confundir a automacao).
+PASSOS = [
+    "Localizar o projeto aberto",
+    "Gerar o vídeo no CapCut",
+    "Aguardar a renderização",
+    "Cortar e organizar no Drive",
+]
 
 
 def _pastas_export(cfg):
@@ -101,60 +113,85 @@ def _fechar_dialogo_pos_export():
     print("      (janela de compartilhar nao apareceu — seguindo)")
 
 
-def main():
+def _contar_clipes(raiz):
+    n = 0
+    if raiz and os.path.isdir(raiz):
+        for _, _, fs in os.walk(raiz):
+            n += sum(1 for f in fs if f.lower().endswith(".mp4"))
+    return n
+
+
+def executar(cb=None, abrir=False):
+    """Roda o fluxo toque-zero. cb(passo_idx, detalhe) e' chamado a cada passo
+    (passo_idx 0..3, ver PASSOS). Retorna (pasta_dos_cortes, n_clipes).
+    Em erro, levanta RuntimeError com mensagem amigavel."""
+    def _cb(i, d=""):
+        if cb:
+            try: cb(i, d)
+            except Exception: pass
+
     cfg = exportar.carregar_config()
     ff = split.achar_ffmpeg()
     pastas = _pastas_export(cfg)
-    print("Pastas de export vigiadas:", pastas)
 
-    print("\n[1/5] Procurando o editor (projeto precisa estar aberto)...")
+    # 1) localizar o projeto/editor
+    _cb(0, "procurando o projeto aberto…")
     h, itens = auto.garantir_editor()
-    print(f"      editor hwnd={h}")
     antes = _snapshot(pastas)
 
+    # 2) abrir o diálogo e confirmar
+    _cb(1, "abrindo o diálogo no CapCut…")
     if auto.achar(itens, "exportar para"):
-        print("[2/5] Dialogo de export ja esta aberto.")
         itens2 = itens
     else:
-        topo = min([i for i in itens if "exportar" in i["texto"].lower()], key=lambda i: i["cy"])
-        print(f"[2/5] Abrindo dialogo de export (clica Exportar em {topo['cx']},{topo['cy']})...")
+        topo = min([i for i in itens if "exportar" in i["texto"].lower()],
+                   key=lambda i: i["cy"])
         auto.clicar(topo)
         time.sleep(5)
+        # a janela troca de id ao abrir o diálogo; usa a janela em 1º plano (o CapCut)
+        try:
+            auto._HWND = auto.win32gui.GetForegroundWindow()
+        except Exception:
+            auto._HWND = None
         itens2 = auto.ler()
     if not auto.achar(itens2, "exportar para"):
-        auto.salvar("erro_dialogo.png")
-        sys.exit("Dialogo de export nao abriu (veja erro_dialogo.png).")
+        raise RuntimeError("Não consegui abrir a janela de geração do vídeo no CapCut.")
     conf = _confirmar_export(itens2)
     if not conf:
-        auto.dump(itens2, "DIALOGO")
-        sys.exit("Botao 'Exportar' de confirmar nao localizado.")
-    print(f"[3/5] Confirmando export (clica em {conf['cx']},{conf['cy']})... isso vai gerar o arquivo grande.")
+        raise RuntimeError("Não encontrei o botão de confirmar no CapCut.")
+    _cb(1, "confirmando…")
     auto.clicar(conf)
 
-    print("[4/5] Exportando no CapCut e aguardando o arquivo (ate 20 min)...")
-    novo = _esperar_novo(pastas, antes, timeout=1200)
+    # 3) aguardar o arquivo
+    _cb(2, "o CapCut está gerando o vídeo — isso pode levar alguns minutos…")
+    novo = _esperar_novo(pastas, antes, timeout=1800)
     if not novo:
-        sys.exit("Nao detectei o arquivo exportado. (Export pode ter falhado.)")
-    print(f"      arquivo: {novo}  ({os.path.getsize(novo)/1e6:.0f} MB)")
-
-    print("      fechando a janela de compartilhar do CapCut...")
+        raise RuntimeError("Não detectei o vídeo gerado (a geração pode ter falhado).")
     _fechar_dialogo_pos_export()
 
-    print("[5/5] Cortando, organizando e subindo pro destino...")
+    # 4) cortar e organizar
+    _cb(3, "cortando os vídeos e organizando no Drive…")
     raiz = vigiar.processar(novo, cfg, ff)
     if os.path.exists(novo):
-        print(f"\n*** ATENCAO: o arquivo NAO foi cortado e ficou em:\n    {novo}")
-        print("    (O projeto exportado pode nao ter as caixas ESTRUTURA-VY,")
-        print("     ou havia mais de um projeto aberto e foi pego o errado.")
-        print("     Deixe aberto SO o projeto certo e rode de novo.)")
-        return
-    print("\nPRONTO. ")
-    if raiz and os.path.isdir(raiz):
-        print(f"Abrindo a pasta dos cortes: {raiz}")
-        try:
-            os.startfile(raiz)            # abre no Explorer do Windows
-        except Exception as e:
-            print(f"(nao consegui abrir a pasta: {e})")
+        raise RuntimeError("O projeto aberto não tem as caixas ESTRUTURA-VY "
+                           "(ou havia mais de um projeto aberto). "
+                           "Deixe aberto só o projeto certo e tente de novo.")
+    n = _contar_clipes(raiz)
+    if abrir and raiz and os.path.isdir(raiz):
+        try: os.startfile(raiz)
+        except Exception: pass
+    return raiz, n
+
+
+def main():
+    def log(i, d):
+        print(f"[{i+1}/4] {PASSOS[i]}: {d}")
+    try:
+        raiz, n = executar(cb=log, abrir=True)
+        print(f"\nPRONTO — {n} clipes em {raiz}")
+    except Exception as e:
+        print(f"\nERRO: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
