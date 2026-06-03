@@ -10,7 +10,16 @@ Captura full-screen (DWM) + RapidOCR + pyautogui. Sem depender de acessibilidade
 (a arvore UIA do CapCut e' vazia).
 """
 import sys, time
-sys.stdout.reconfigure(encoding="utf-8")
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+import ctypes
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)   # pixels fisicos consistentes
+except Exception:
+    try: ctypes.windll.user32.SetProcessDPIAware()
+    except Exception: pass
 import win32gui, win32con, win32api
 import pyautogui
 import focuswin

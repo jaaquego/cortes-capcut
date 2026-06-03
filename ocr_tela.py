@@ -3,6 +3,12 @@
 Usa RapidOCR (onnx, offline). Captura full-screen (DWM) -> funciona com a UI GPU do CapCut.
 """
 import sys, time
+import ctypes
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)   # pixels fisicos consistentes
+except Exception:
+    try: ctypes.windll.user32.SetProcessDPIAware()
+    except Exception: pass
 import numpy as np
 from PIL import ImageGrab
 

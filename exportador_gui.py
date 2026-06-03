@@ -20,6 +20,17 @@ if sys.stdout is None:
 if sys.stderr is None:
     sys.stderr = open(os.devnull, "w", encoding="utf-8")
 
+# DPI-aware: faz tudo (posicao, captura de tela, cliques) usar pixels FISICOS
+# consistentes (senao a escala 125%/100% bagunça posicao e cliques).
+import ctypes
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
 import tkinter as tk
 from tkinter import font as tkfont
 
@@ -74,8 +85,14 @@ class App:
         self._build()
         self._center(440, 580)
         self._tick()
-        self.root.after(300, self._reposicionar)   # forca canto inf. direito (win32)
+        self.root.after(300, self._pin_loop)   # mantem fixo no canto inf. direito
         self.root.after(120, self._poll)
+
+    def _pin_loop(self):
+        # re-fixa o app no canto inferior direito sempre (mesmo se a escala da
+        # tela mudar ou algo tentar mover) -> nunca cobre os botoes do CapCut
+        self._reposicionar()
+        self.root.after(1000, self._pin_loop)
         if not DEMO:
             self._preload_ocr()   # carrega o modelo de OCR em segundo plano
         if DEMO:
