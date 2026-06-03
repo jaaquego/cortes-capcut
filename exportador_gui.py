@@ -71,6 +71,10 @@ class App:
         root.configure(bg=BG)
         root.resizable(False, False)
         try:
+            root.attributes("-alpha", 0.0)   # nasce invisivel; so' aparece ja' posicionada
+        except Exception:
+            pass
+        try:
             root.iconbitmap(ICON)
         except Exception:
             pass
@@ -85,8 +89,18 @@ class App:
         self._build()
         self._center(440, 580)
         self._tick()
-        self.root.after(300, self._pin_loop)   # mantem fixo no canto inf. direito
+        self.root.update_idletasks()
+        self._reposicionar()                   # ja' posiciona ANTES de aparecer
+        self.root.after(80, self._mostrar)     # revela ja' no lugar (sem pulo)
         self.root.after(120, self._poll)
+
+    def _mostrar(self):
+        self._reposicionar()
+        try:
+            self.root.attributes("-alpha", 1.0)   # agora aparece, ja' no canto
+        except Exception:
+            pass
+        self.root.after(1000, self._pin_loop)
 
     def _pin_loop(self):
         # re-fixa o app no canto inferior direito sempre (mesmo se a escala da
