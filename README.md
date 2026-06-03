@@ -65,8 +65,13 @@ py vigiar.py --agora                    # processa o .mp4 mais recente da pasta 
 
 - `destino.pasta_local` — onde os cortes são salvos. **Atual: `I:\Meu Drive\Cortes CapCut`**
   (pasta do Google Drive → sobe pro Drive sozinho). Dentro dela, cada projeto ganha uma
-  **pasta-mãe** com o nome do projeto, e dentro dela `Estrutura N\V M\`. Ex.:
-  `Cortes CapCut\Criativos Vídeo Narrado Vistas de Anitá\Estrutura 1\V1\...`
+  **pasta-mãe** com o nome do projeto **sem o formato**, e dentro dela `Estrutura N\V M\`.
+- **Reels + Feed na mesma pasta:** os projetos `Reels-...` e `Feed-...` (mesmo vídeo em
+  9:16 e 4:5) caem na **mesma pasta-mãe** (o prefixo `Reels/Feed` é removido do nome da
+  pasta) e se diferenciam pelo **nome do arquivo** (que mantém `Reels`/`Feed` na frente).
+  Ex.: `Cortes CapCut\Narrado Vistas de Anitá III E1 V\Estrutura 1\V1\`
+  contém `Reels Narrado... E1-V1.mp4` **e** `Feed Narrado... E1-V1.mp4`.
+  Formatos reconhecidos como prefixo: `reels, feed, stories, story, carrossel`.
 - `vigia.pasta_export_capcut` — pasta que o Vigia observa. **Atual: `C:\Users\compu\CapCut_Export_Temp`**
   (pasta local, fora do OneDrive, pra não subir o arquivão à toa). Exporte a timeline aqui.
 - `vigia.deletar_apos_cortar` — apaga o arquivo grande depois de cortar (true/false).

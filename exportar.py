@@ -36,17 +36,40 @@ def slug(s):
     return re.sub(r"[^\w\-]+", "-", s, flags=re.UNICODE).strip("-")
 
 
+# Formatos (prefixo no nome do projeto) que NAO entram na pasta-mae:
+# Reels (9:16) e Feed (4:5) sao o MESMO video -> mesma pasta, formato so' no arquivo.
+FORMATOS = ("reels", "feed", "stories", "story", "carrossel")
+
+
+def _limpar(s):
+    """Limpa pra usar em nome de pasta/arquivo: tira ilegais, tracos viram espaco."""
+    s = re.sub(r'[\\/:*?"<>|]+', " ", s)
+    s = re.sub(r"[-–—]+", " ", s)
+    s = re.sub(r"\s+", " ", s).strip(" .")
+    return s
+
+
+def _sem_formato(projeto):
+    """Remove o prefixo de formato (Reels/Feed/...) do inicio do nome do projeto."""
+    pat = r"^(" + "|".join(FORMATOS) + r")\b[\s\-–—_]*"
+    m = re.match(pat, projeto, re.IGNORECASE)
+    return projeto[m.end():] if m else projeto
+
+
+def nome_arquivo_projeto(projeto):
+    """Nome COMPLETO limpo do projeto (mantem Reels/Feed na frente) -> nome do arquivo.
+    Ex.: 'Feed-Narrado-Vistas de Anita III-E1-V' -> 'Feed Narrado Vistas de Anita III E1 V'."""
+    return _limpar(projeto) or "Projeto"
+
+
 def nome_pasta_projeto(projeto):
-    """Nome limpo do projeto pra pasta-mae no Drive.
-    Ex.: 'Criativos - Video Narrado - Vistas de Anita' -> 'Criativos Video Narrado Vistas de Anita'."""
-    s = re.sub(r'[\\/:*?"<>|]+', " ", projeto)   # tira caracteres ilegais em nome de pasta
-    s = re.sub(r"[-–—]+", " ", s)                # tracos viram espaco
-    s = re.sub(r"\s+", " ", s).strip(" .")       # colapsa espacos; pasta nao pode terminar em espaco/ponto
-    return s or "Projeto"
+    """Nome da PASTA-mae, SEM o formato (Reels/Feed) -> os dois formatos caem na MESMA pasta.
+    Ex.: 'Reels-Narrado-Vistas...' e 'Feed-Narrado-Vistas...' -> 'Narrado Vistas...'."""
+    return _limpar(_sem_formato(projeto)) or "Projeto"
 
 
 def pasta_saida_projeto(pasta, projeto):
-    """Pasta-mae onde vao as Estruturas desse projeto: <destino>/<Nome do Projeto>/."""
+    """Pasta-mae onde vao as Estruturas: <destino>/<Projeto sem formato>/."""
     return os.path.join(pasta, nome_pasta_projeto(projeto))
 
 
@@ -71,7 +94,7 @@ def gerar_cortes(projeto, video, pasta, modelo="{projeto}__{nome}", dry=False, l
     for s in r["segmentos"]:
         subpasta = os.path.join(raiz, f"Estrutura {s['estrutura']}", f"V{s['versao']}")
         os.makedirs(subpasta, exist_ok=True)
-        nome = modelo.format(projeto=nome_pasta_projeto(projeto), nome=s["nome"])
+        nome = modelo.format(projeto=nome_arquivo_projeto(projeto), nome=s["nome"])
         saida = os.path.join(subpasta, nome + ".mp4")
         if os.path.exists(saida):
             saida = os.path.join(subpasta, nome + "_2.mp4")
