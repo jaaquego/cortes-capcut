@@ -64,7 +64,7 @@ def garantir_capcut(verbose=True, preferir=None, evitar=None, exigir=None, exclu
             win32gui.ShowWindow(h, win32con.SW_RESTORE)
         except Exception:
             continue
-        time.sleep(0.3)
+        time.sleep(0.15)
         # se a janela estiver fora da tela, traz pra (0,0) com tamanho que cabe
         l, t, r, b = win32gui.GetWindowRect(h)
         if l >= sw or r <= 0 or t >= sh or b <= 0 or l < -1000:
@@ -74,7 +74,7 @@ def garantir_capcut(verbose=True, preferir=None, evitar=None, exigir=None, exclu
                 except Exception: pass
                 time.sleep(0.3)
         focuswin.focar(h)
-        time.sleep(0.9)
+        time.sleep(0.5)
         if win32gui.GetForegroundWindow() != h:
             continue
         itens = ocr_tela.ler(im=ImageGrab.grab())

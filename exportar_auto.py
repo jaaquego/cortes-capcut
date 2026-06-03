@@ -147,7 +147,7 @@ def executar(cb=None, abrir=False):
         topo = min([i for i in itens if "exportar" in i["texto"].lower()],
                    key=lambda i: i["cy"])
         auto.clicar(topo)
-        time.sleep(5)
+        time.sleep(3)
         # a janela troca de id ao abrir o diálogo; usa a janela em 1º plano (o CapCut)
         try:
             auto._HWND = auto.win32gui.GetForegroundWindow()

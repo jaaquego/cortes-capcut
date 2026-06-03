@@ -9,6 +9,13 @@ import glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
+# roda o ffmpeg SEM abrir janela de console (senao pisca uma a cada corte)
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+
+
+def _run(cmd, **kw):
+    return subprocess.run(cmd, creationflags=_NO_WINDOW, **kw)
+
 
 def achar_ffmpeg():
     """Acha o ffmpeg.exe que vem com o CapCut (versao mais recente)."""
@@ -22,7 +29,7 @@ def achar_ffmpeg():
 def duracao_us(video, ffmpeg=None):
     """Retorna a duracao do video em microssegundos (via ffmpeg)."""
     ffmpeg = ffmpeg or achar_ffmpeg()
-    r = subprocess.run([ffmpeg, "-hide_banner", "-i", video], capture_output=True, text=True)
+    r = _run([ffmpeg, "-hide_banner", "-i", video], capture_output=True, text=True)
     import re as _re
     m = _re.search(r"Duration: (\d+):(\d+):(\d+\.\d+)", r.stderr)
     if not m:
@@ -52,7 +59,7 @@ def cortar(video_in, start_us, dur_us, saida, ffmpeg=None, cq=20):
         "-movflags", "+faststart",
         saida,
     ]
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = _run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         raise RuntimeError(f"ffmpeg falhou:\n{r.stderr[-800:]}")
     return saida

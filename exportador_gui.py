@@ -75,8 +75,19 @@ class App:
         self._center(440, 580)
         self._tick()
         self.root.after(120, self._poll)
+        if not DEMO:
+            self._preload_ocr()   # carrega o modelo de OCR em segundo plano
         if DEMO:
             self.root.after(900, self.start)
+
+    def _preload_ocr(self):
+        def _load():
+            try:
+                import ocr_tela
+                ocr_tela._ocr()   # forca o carregamento do modelo agora
+            except Exception:
+                pass
+        threading.Thread(target=_load, daemon=True).start()
 
     # ---------- layout ----------
     def _build(self):

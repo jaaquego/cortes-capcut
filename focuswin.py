@@ -82,7 +82,7 @@ def focar(hwnd=None):
 
     capcuts = _capcut_hwnds()
     win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-    time.sleep(0.3)
+    time.sleep(0.15)
 
     def _traz():
         try:
@@ -111,13 +111,13 @@ def focar(hwnd=None):
             print("focar erro:", e)
 
     # tenta ate o CapCut ser de fato a janela em primeiro plano
-    for _ in range(10):
+    for _ in range(5):
         _traz()
-        time.sleep(0.4)
+        time.sleep(0.25)
         if win32gui.GetForegroundWindow() == hwnd:
-            time.sleep(0.7)  # deixa repintar
+            time.sleep(0.45)  # deixa repintar
             return True
-    time.sleep(0.6)
+    time.sleep(0.4)
     return win32gui.GetForegroundWindow() == hwnd
 
 
