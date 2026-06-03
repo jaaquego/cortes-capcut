@@ -13,8 +13,13 @@ O resultado é idêntico ao corte manual com I/O — o rótulo (~1,8s) fica de f
 
 ## Uso recomendado: toque zero (`Exportar Automatico.bat`)
 
-1. No CapCut, **abra o projeto** (deixe ele aberto na timeline).
-2. Dê 2 cliques em **`Exportar Automatico.bat`**.
+Há um atalho **"Exportar Cortes CapCut"** na Área de Trabalho (ícone próprio).
+Ou use o `Exportar Automatico.bat` na pasta do projeto. Para recriar o atalho:
+`py gerar_icone.py` (gera `icon.ico`) e rode o trecho do WScript.Shell do README/histórico.
+
+1. No CapCut, **abra o projeto** (deixe ele aberto na timeline; feche os outros).
+2. Dê 2 cliques no atalho **"Exportar Cortes CapCut"** (ou no `.bat`).
+   Durante os ~15s de cliques, não mexa no mouse; no resto, use o PC normal.
 3. O programa faz tudo sozinho:
    - acha a janela do editor do CapCut (lê a tela com OCR),
    - clica **Exportar** e **confirma** (o CapCut exporta a timeline inteira),
