@@ -54,30 +54,48 @@ def _snapshot(pastas):
     return s
 
 
-def _esperar_novo(pastas, antes, timeout=1200):
-    """Espera um .mp4 novo aparecer e estabilizar. Devolve o caminho."""
+def _esperar_e_fechar(pastas, antes, timeout=1800):
+    """Espera o .mp4 ficar pronto e, NO INSTANTE que o export termina, fecha o
+    aviso de compartilhar (Esc + Cancelar). Devolve o caminho do .mp4."""
     t0 = time.time()
     novo = None
+    # 1) espera o arquivo aparecer (poll rapido)
     while time.time() - t0 < timeout:
-        agora = _snapshot(pastas)
-        cands = [p for p in agora if p not in antes]
+        cands = [p for p in _snapshot(pastas) if p not in antes]
         if cands:
             novo = max(cands, key=os.path.getmtime)
             break
-        time.sleep(2)
+        time.sleep(0.5)
     if not novo:
         return None
-    # espera parar de crescer (export terminou)
-    tam = -1
-    while True:
+    # 2) detecta o fim do render: tamanho parado por ~1s (poll rapido)
+    tam, estavel = -1, 0
+    while time.time() - t0 < timeout:
         try:
             t = os.path.getsize(novo)
         except OSError:
             t = -1
-        if t == tam and t > 0:
-            break
+        if t > 0 and t == tam:
+            estavel += 1
+            if estavel >= 3:
+                break
+        else:
+            estavel = 0
         tam = t
-        time.sleep(2)
+        time.sleep(0.35)
+    # 3) acabou AGORA -> fecha o aviso de compartilhar instantaneamente
+    try:
+        auto.pyautogui.press("esc")
+    except Exception:
+        pass
+    # 4) garantia: se o aviso ainda estiver la', clica Cancelar
+    try:
+        itens = ocr_tela.ler(im=auto._grab())
+        canc = auto.achar(itens, "cancelar")
+        if canc and auto.achar(itens, "compartilhar", "tiktok", "youtube", "salvo"):
+            auto.clicar(canc)
+    except Exception:
+        pass
     return novo
 
 
@@ -161,12 +179,11 @@ def executar(cb=None, abrir=False):
     _cb(1, "confirmando…")
     auto.clicar(conf)
 
-    # 3) aguardar o arquivo
+    # 3) aguardar o arquivo e fechar o aviso de compartilhar NA HORA
     _cb(2, "o CapCut está gerando o vídeo — isso pode levar alguns minutos…")
-    novo = _esperar_novo(pastas, antes, timeout=1800)
+    novo = _esperar_e_fechar(pastas, antes, timeout=1800)
     if not novo:
         raise RuntimeError("Não detectei o vídeo gerado (a geração pode ter falhado).")
-    _fechar_dialogo_pos_export()
 
     # 4) cortar e organizar
     _cb(3, "cortando os vídeos e organizando no Drive…")
