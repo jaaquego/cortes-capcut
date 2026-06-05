@@ -3,6 +3,9 @@
 Transforma 1 projeto do CapCut (timeline com vários vídeos no padrão `ESTRUTURA X - V Y`)
 em N clipes separados, com precisão de frame, já organizados em pastas.
 
+> 👉 **Equipe:** veja o guia completo em **[INSTRUCOES.md](INSTRUCOES.md)** (instalar, montar a
+> timeline, regras de uso). Resumo de instalação abaixo.
+
 ## 📥 Instalação (passo a passo para a equipe)
 
 **Pré-requisitos na sua máquina:**
