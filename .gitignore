@@ -12,3 +12,6 @@ export_dialog*.png
 
 # Saidas locais (nao versionar videos)
 *.mp4
+
+# Config de cada maquina (o modelo e' o config.exemplo.json)
+config.json

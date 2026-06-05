@@ -25,9 +25,14 @@ except Exception:
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.path.join(HERE, "config.json")
+CONFIG_EXEMPLO = os.path.join(HERE, "config.exemplo.json")
 
 
 def carregar_config():
+    # 1a vez (ou apos baixar do GitHub): cria o config.json a partir do modelo
+    if not os.path.isfile(CONFIG) and os.path.isfile(CONFIG_EXEMPLO):
+        import shutil
+        shutil.copyfile(CONFIG_EXEMPLO, CONFIG)
     with open(CONFIG, "r", encoding="utf-8") as fh:
         cfg = json.load(fh)
     # portabilidade: expande variaveis (%USERPROFILE% etc.) e aplica defaults

@@ -54,7 +54,7 @@ PASSOS = [
     "Localizar o projeto aberto",
     "Gerar o vídeo no CapCut",
     "Aguardar a renderização",
-    "Cortar e organizar no Drive",
+    "Cortar e organizar nas pastas",
 ]
 
 
@@ -66,6 +66,7 @@ class App:
         self.angle = 0
         self.running = False
         self.result_folder = None
+        self._pausar_pin = False   # pausa a fixacao no canto (ex.: enquanto um popup esta aberto)
 
         root.title("Cortes CapCut")
         root.configure(bg=BG)
@@ -87,7 +88,7 @@ class App:
         self.f_link  = tkfont.Font(family="Segoe UI", size=9, underline=True)
 
         self._build()
-        self._center(440, 580)
+        self._center(440, 626)
         self._tick()
         self.root.update_idletasks()
         self._reposicionar()                   # ja' posiciona ANTES de aparecer
@@ -104,8 +105,11 @@ class App:
 
     def _pin_loop(self):
         # re-fixa o app no canto inferior direito sempre (mesmo se a escala da
-        # tela mudar ou algo tentar mover) -> nunca cobre os botoes do CapCut
-        self._reposicionar()
+        # tela mudar ou algo tentar mover) -> nunca cobre os botoes do CapCut.
+        # Pausado enquanto um popup (ex.: escolher pasta) esta aberto, senao o app
+        # re-sobe por cima e esconde o popup.
+        if not self._pausar_pin:
+            self._reposicionar()
         self.root.after(1000, self._pin_loop)
         if not DEMO:
             self._preload_ocr()   # carrega o modelo de OCR em segundo plano
@@ -132,7 +136,7 @@ class App:
         tw = tk.Frame(head, bg=BG)
         tw.pack(side="left", padx=12)
         tk.Label(tw, text="Cortes CapCut", bg=BG, fg=TXT, font=self.f_title).pack(anchor="w")
-        tk.Label(tw, text="gera, corta e organiza no Drive — sozinho",
+        tk.Label(tw, text="gera, corta e organiza em pastas — sozinho",
                  bg=BG, fg=SUB, font=self.f_sub).pack(anchor="w")
 
         # dica
@@ -141,6 +145,17 @@ class App:
         tk.Label(tip, text="①  Abra no CapCut só o projeto desejado\n"
                             "②  Não use o mouse enquanto eu trabalho",
                  bg=CARD, fg=SUB, font=self.f_small, justify="left").pack(anchor="w", padx=12, pady=8)
+
+        # pasta de destino (onde salva) + botao alterar
+        dest = tk.Frame(self.root, bg=BG)
+        dest.pack(fill="x", padx=24, pady=(2, 2))
+        alt = tk.Label(dest, text="alterar", bg=BG, fg=LINK, font=self.f_link, cursor="hand2")
+        alt.pack(side="right")
+        alt.bind("<Button-1>", lambda e: self._alterar_destino())
+        self.dest_lb = tk.Label(dest, text="", bg=BG, fg=SUB, font=self.f_small,
+                                anchor="w", justify="left", wraplength=320)
+        self.dest_lb.pack(side="left")
+        self._atualizar_destino_label()
 
         # passos
         self.card = tk.Frame(self.root, bg=CARD)
@@ -265,28 +280,125 @@ class App:
         self.steps[i]["state"] = state
         self._draw_step(i)
 
-    # ---------- execucao ----------
-    def _garantir_destino(self):
-        """Na 1a vez (ou se a pasta sumiu), pede a pasta de destino e salva."""
-        import exportar
-        cfg = exportar.carregar_config()
-        d = cfg["destino"]["pasta_local"]
-        if d and os.path.isdir(d):
-            return True
-        from tkinter import filedialog, messagebox
+    # ---------- pasta de destino ----------
+    def _pasta_conhecida(self, qual):
+        """Caminho da Area de Trabalho / Videos (lida com OneDrive e PT/EN)."""
+        h = os.path.expanduser("~")
+        cands = {
+            "Desktop": [os.path.join(h, "Desktop"),
+                        os.path.join(h, "OneDrive", "Desktop"),
+                        os.path.join(h, "OneDrive", "Área de Trabalho")],
+            "Videos":  [os.path.join(h, "Videos"), os.path.join(h, "Vídeos"),
+                        os.path.join(h, "OneDrive", "Videos"),
+                        os.path.join(h, "OneDrive", "Vídeos")],
+        }.get(qual, [])
+        for c in cands:
+            if os.path.isdir(c):
+                return c
+        return cands[0] if cands else h
+
+    def _atualizar_destino_label(self):
+        try:
+            import exportar
+            d = exportar.carregar_config()["destino"]["pasta_local"]
+        except Exception:
+            d = ""
+        if d:
+            txt = d if len(d) <= 46 else "…" + d[-44:]
+            self.dest_lb.config(text="💾  Salva em:  " + txt)
+        else:
+            self.dest_lb.config(text="💾  Salva em:  (escolher na 1ª vez)")
+
+    def _escolher_destino(self):
+        """Menu: Area de Trabalho / Videos / Escolher pasta / Colar caminho. Devolve o path."""
+        import tkinter as tk
+        from tkinter import filedialog, simpledialog
+        sub = "Cortes CapCut"
+        esc = {"p": None}
+        self._pausar_pin = True                       # nao deixa o app re-subir por cima
         try: self.root.attributes("-topmost", False)
         except Exception: pass
-        messagebox.showinfo("Configuração inicial",
-                            "Escolha a pasta onde salvar os cortes.\n"
-                            "(ex.: uma pasta dentro do seu Google Drive)", parent=self.root)
-        pasta = filedialog.askdirectory(title="Pasta de destino dos cortes", parent=self.root)
+        win = tk.Toplevel(self.root)
+        win.title("Onde salvar os cortes?")
+        win.configure(bg=CARD); win.resizable(False, False)
+        win.attributes("-topmost", True)
+        tk.Label(win, text="Onde salvar os cortes?", bg=CARD, fg=TXT, font=self.f_step).pack(padx=22, pady=(16, 2))
+        tk.Label(win, text="Pode ser qualquer pasta (não precisa de Drive).",
+                 bg=CARD, fg=SUB, font=self.f_small).pack(padx=22, pady=(0, 10))
+
+        def fechar(p):
+            esc["p"] = p; win.destroy()
+
+        def desk():  fechar(os.path.join(self._pasta_conhecida("Desktop"), sub))
+        def vids():  fechar(os.path.join(self._pasta_conhecida("Videos"), sub))
+        def pick():
+            win.attributes("-topmost", False)
+            p = filedialog.askdirectory(title="Escolha a pasta", parent=win)
+            if p: fechar(p)
+            else: win.attributes("-topmost", True)
+        def paste():
+            win.attributes("-topmost", False)
+            p = simpledialog.askstring("Colar caminho", "Cole o caminho da pasta:", parent=win)
+            if p: fechar(p.strip().strip('"'))
+            else: win.attributes("-topmost", True)
+
+        for txt, cmd in [("🖥   Área de Trabalho", desk), ("🎬   Pasta Vídeos", vids),
+                         ("📁   Escolher uma pasta…", pick), ("📋   Colar um caminho…", paste)]:
+            b = tk.Frame(win, bg=ACCENT, cursor="hand2")
+            b.pack(fill="x", padx=22, pady=4)
+            l = tk.Label(b, text=txt, bg=ACCENT, fg="#06121A", font=self.f_small)
+            l.pack(pady=9, padx=10, anchor="w")
+            for wdg in (b, l):
+                wdg.bind("<Button-1>", lambda e, c=cmd: c())
+                wdg.bind("<Enter>", lambda e, fr=b, la=l: (fr.config(bg=ACCENT2), la.config(bg=ACCENT2)))
+                wdg.bind("<Leave>", lambda e, fr=b, la=l: (fr.config(bg=ACCENT), la.config(bg=ACCENT)))
+        canc = tk.Label(win, text="cancelar", bg=CARD, fg=SUB, font=self.f_small, cursor="hand2")
+        canc.pack(pady=(6, 10))
+        canc.bind("<Button-1>", lambda e: fechar(None))
+        win.update_idletasks()
+        # centraliza o popup sobre o app
+        rx, ry = self.root.winfo_rootx(), self.root.winfo_rooty()
+        win.geometry(f"+{max(0, rx-40)}+{max(0, ry-40)}")
+        win.grab_set()
+        self.root.wait_window(win)
+        self._pausar_pin = False
+        try: self.root.attributes("-topmost", True)
+        except Exception: pass
+        return esc["p"]
+
+    def _definir_destino(self):
+        """Abre o menu, cria a pasta e salva no config. Devolve True se definiu."""
+        import exportar
+        pasta = self._escolher_destino()
         try: self.root.attributes("-topmost", True)
         except Exception: pass
         if not pasta:
             return False
+        try:
+            os.makedirs(pasta, exist_ok=True)
+        except Exception:
+            from tkinter import messagebox
+            messagebox.showwarning("Pasta inválida", f"Não consegui usar:\n{pasta}", parent=self.root)
+            return False
+        cfg = exportar.carregar_config()
         cfg["destino"]["pasta_local"] = pasta
         exportar.salvar_config(cfg)
+        self._atualizar_destino_label()
         return True
+
+    def _alterar_destino(self):
+        if self.running:
+            return
+        self._definir_destino()
+
+    # ---------- execucao ----------
+    def _garantir_destino(self):
+        """Na 1a vez (ou se a pasta sumiu), pede a pasta de destino e salva."""
+        import exportar
+        d = exportar.carregar_config()["destino"]["pasta_local"]
+        if d and os.path.isdir(d):
+            return True
+        return self._definir_destino()
 
     def start(self):
         if self.running:
@@ -363,7 +475,7 @@ class App:
 
     def _mostrar_resultado(self, raiz, n):
         self.result_folder = raiz
-        self.res_title.config(text=f"✓  {n} clipes prontos no Drive")
+        self.res_title.config(text=f"✓  {n} clipes prontos")
         nome = os.path.basename(raiz.rstrip("\\/")) if raiz else ""
         self.link.config(text=f"📂  Abrir pasta:  {nome}")
         self.result.pack(fill="x", padx=24, pady=(2, 2), before=self.btn)

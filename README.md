@@ -8,7 +8,8 @@ em N clipes separados, com precisão de frame, já organizados em pastas.
 **Pré-requisitos na sua máquina:**
 - Windows 10/11
 - **CapCut Desktop** instalado
-- **Google Drive para Desktop** instalado (se for salvar os cortes no Drive)
+- (Opcional) **Google Drive para Desktop**, se quiser salvar os cortes direto no Drive
+  — mas **não é obrigatório**: dá pra salvar em qualquer pasta (Área de Trabalho, Vídeos, etc.)
 
 **Instalar:**
 1. Baixe o projeto (botão verde **Code → Download ZIP** no GitHub) e **descompacte**
@@ -17,8 +18,10 @@ em N clipes separados, com precisão de frame, já organizados em pastas.
    - Se aparecer "Python instalado, rode de novo", feche e dê 2 cliques no `Instalar.bat` outra vez.
    - O instalador baixa as bibliotecas e cria o atalho **"Cortes CapCut"** na Área de Trabalho.
 3. Abra o **CapCut** no projeto que quer exportar e dê 2 cliques no atalho **"Cortes CapCut"**.
-4. Na **1ª vez**, o programa pede a **pasta de destino** dos cortes — escolha (ex.: uma
-   pasta no seu Google Drive). Depois é só clicar **▶ Começar**.
+4. Na **1ª vez**, o programa pergunta **onde salvar os cortes**: Área de Trabalho,
+   pasta Vídeos, escolher uma pasta, ou colar um caminho (pode ser Google Drive **ou
+   qualquer pasta** — não precisa de Drive). Dá pra mudar depois no link **"alterar"**.
+   Depois é só clicar **▶ Começar**.
 
 **Como usar no dia a dia:** abra **só** o projeto desejado no CapCut → atalho → **Começar**.
 Não mexa no mouse durante os ~15s de cliques; o resto roda enquanto você trabalha.
@@ -85,8 +88,9 @@ py vigiar.py --agora                    # processa o .mp4 mais recente da pasta 
 
 ## Configuração (`config.json`)
 
-- `destino.pasta_local` — onde os cortes são salvos. **Atual: `I:\Meu Drive\Cortes CapCut`**
-  (pasta do Google Drive → sobe pro Drive sozinho). Dentro dela, cada projeto ganha uma
+- `destino.pasta_local` — onde os cortes são salvos. Vem **vazio**; o app pergunta na 1ª vez
+  (Área de Trabalho, Vídeos, escolher pasta ou colar caminho — Drive **ou** qualquer pasta).
+  Dá pra trocar no link **"alterar"** do app. Dentro dela, cada projeto ganha uma
   **pasta-mãe** com o nome do projeto **sem o formato**, e dentro dela `Estrutura N\V M\`.
 - **Reels + Feed na mesma pasta:** os projetos `Reels-...` e `Feed-...` (mesmo vídeo em
   9:16 e 4:5) caem na **mesma pasta-mãe** (o prefixo `Reels/Feed` é removido do nome da
@@ -94,8 +98,8 @@ py vigiar.py --agora                    # processa o .mp4 mais recente da pasta 
   Ex.: `Cortes CapCut\Narrado Vistas de Anitá III E1 V\Estrutura 1\V1\`
   contém `Reels Narrado... E1-V1.mp4` **e** `Feed Narrado... E1-V1.mp4`.
   Formatos reconhecidos como prefixo: `reels, feed, stories, story, carrossel`.
-- `vigia.pasta_export_capcut` — pasta que o Vigia observa. **Atual: `C:\Users\compu\CapCut_Export_Temp`**
-  (pasta local, fora do OneDrive, pra não subir o arquivão à toa). Exporte a timeline aqui.
+- `vigia.pasta_export_capcut` — pasta que o Vigia observa (opcional; vazio = usa a pasta
+  Downloads). Só importa pra alternativa manual (o Vigia).
 - `vigia.deletar_apos_cortar` — apaga o arquivo grande depois de cortar (true/false).
 - `vigia.tolerancia_duracao_s` — margem pra confirmar que o vídeo é a timeline inteira.
 - `nome_arquivo` — padrão do nome. Variáveis: `{projeto}` (nome limpo do projeto),
@@ -125,13 +129,9 @@ podem estar em vários formatos (`ESTRUTURA 1 ... V3`, `Estrutura1 V3`, etc.).
 - `exportar.py` — núcleo de corte + uso manual por linha de comando
 - `config.json` — configurações
 
-## Google Drive (configurado)
+## Onde salvar (Drive é opcional)
 
-O **Google Drive para Desktop** está instalado e montado em `I:\` (`I:\Meu Drive`).
-O destino dos cortes aponta para `I:\Meu Drive\Cortes CapCut`, então os clipes sobem
-para o Drive automaticamente. Depois é só mover, dentro do Drive, para a pasta do
-empreendimento (move interno do Drive, sem re-upload).
-
-Obs: a letra do mount (`I:`) pode mudar se você reorganizar os drives. Se um dia o
-destino parar de funcionar, confira a letra atual do Google Drive e atualize
-`destino.pasta_local` no `config.json`.
+Você escolhe a pasta de destino no app (1ª vez ou no link **"alterar"**): Área de
+Trabalho, pasta Vídeos, escolher uma pasta, ou colar um caminho. **Não precisa de
+Google Drive.** Se quiser que os cortes subam pro Drive automaticamente, basta escolher
+uma pasta que esteja dentro do **Google Drive para Desktop** (ex.: `G:\Meu Drive\...`).

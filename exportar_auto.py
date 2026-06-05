@@ -32,7 +32,7 @@ PASSOS = [
     "Localizar o projeto aberto",
     "Gerar o vídeo no CapCut",
     "Aguardar a renderização",
-    "Cortar e organizar no Drive",
+    "Cortar e organizar nas pastas",
 ]
 
 
@@ -186,7 +186,7 @@ def executar(cb=None, abrir=False):
         raise RuntimeError("Não detectei o vídeo gerado (a geração pode ter falhado).")
 
     # 4) cortar e organizar
-    _cb(3, "cortando os vídeos e organizando no Drive…")
+    _cb(3, "cortando os vídeos e organizando nas pastas…")
     raiz = vigiar.processar(novo, cfg, ff)
     if os.path.exists(novo):
         raise RuntimeError("O projeto aberto não tem as caixas ESTRUTURA-VY "
