@@ -1,9 +1,9 @@
 {
   "destino": {
-    "pasta_local": "I:\\Meu Drive\\Cortes CapCut"
+    "pasta_local": ""
   },
   "vigia": {
-    "pasta_export_capcut": "C:\\Users\\compu\\CapCut_Export_Temp",
+    "pasta_export_capcut": "",
     "deletar_apos_cortar": true,
     "tolerancia_duracao_s": 3
   },

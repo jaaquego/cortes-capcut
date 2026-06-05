@@ -37,8 +37,10 @@ def _grab():
     """Captura a tela inteira. (O app fica num canto e nao tem palavras-gatilho,
     entao nao atrapalha o OCR — nao precisa mascarar.)"""
     return ImageGrab.grab()
-KW = ("criar projeto", "exportar", "projetos", "inicio", "modelos",
-      "duracao", "tamanho", "espacos", "mais ferramentas")
+# palavras-chave de conteudo (bilingue PT/EN; 'export' casa Exportar/Export)
+KW = ("criar projeto", "create", "export", "projeto", "project", "inicio",
+      "home", "modelos", "template", "duracao", "duration", "tamanho",
+      "size", "espacos", "mais ferramentas", "more tools")
 
 
 def _hits(itens):
@@ -98,9 +100,11 @@ def garantir_capcut(verbose=True, preferir=None, evitar=None, exigir=None, exclu
         itens = ocr_tela.ler(im=_grab())
         ok = _e_conteudo(itens)
         if exigir:
-            ok = ok and achar(itens, exigir) is not None
+            al = exigir if isinstance(exigir, (list, tuple)) else (exigir,)
+            ok = ok and achar(itens, *al) is not None
         if excluir:
-            ok = ok and achar(itens, excluir) is None
+            al = excluir if isinstance(excluir, (list, tuple)) else (excluir,)
+            ok = ok and achar(itens, *al) is None
         if verbose:
             print(f"  candidata hwnd={h} rect={win32gui.GetWindowRect(h)} "
                   f"hits={_hits(itens)} textos={len([i for i in itens if i['conf']>0.5])} -> {'OK' if ok else 'skip'}")
@@ -116,11 +120,12 @@ def garantir_capcut(verbose=True, preferir=None, evitar=None, exigir=None, exclu
 
 
 def garantir_editor(timeout=30):
-    """Acha a janela do EDITOR (tem 'Exportar' e NAO tem 'Criar projeto' = nao e' a home)."""
+    """Acha a janela do EDITOR (tem 'Export(ar)' e NAO e' a home). Bilingue PT/EN."""
     t0 = time.time()
     while True:
         try:
-            return garantir_capcut(exigir="exportar", excluir="criar projeto")
+            return garantir_capcut(exigir="export",
+                                   excluir=("criar projeto", "novo projeto", "new project", "create project"))
         except RuntimeError:
             if time.time() - t0 > timeout:
                 raise RuntimeError("Editor nao encontrado. Abra o projeto no CapCut (timeline).")

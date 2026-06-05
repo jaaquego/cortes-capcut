@@ -3,6 +3,28 @@
 Transforma 1 projeto do CapCut (timeline com vários vídeos no padrão `ESTRUTURA X - V Y`)
 em N clipes separados, com precisão de frame, já organizados em pastas.
 
+## 📥 Instalação (passo a passo para a equipe)
+
+**Pré-requisitos na sua máquina:**
+- Windows 10/11
+- **CapCut Desktop** instalado
+- **Google Drive para Desktop** instalado (se for salvar os cortes no Drive)
+
+**Instalar:**
+1. Baixe o projeto (botão verde **Code → Download ZIP** no GitHub) e **descompacte**
+   numa pasta fixa (ex.: `Documentos\Cortes CapCut`). Não rode de dentro do .zip.
+2. Dê **2 cliques em `Instalar.bat`**.
+   - Se aparecer "Python instalado, rode de novo", feche e dê 2 cliques no `Instalar.bat` outra vez.
+   - O instalador baixa as bibliotecas e cria o atalho **"Cortes CapCut"** na Área de Trabalho.
+3. Abra o **CapCut** no projeto que quer exportar e dê 2 cliques no atalho **"Cortes CapCut"**.
+4. Na **1ª vez**, o programa pede a **pasta de destino** dos cortes — escolha (ex.: uma
+   pasta no seu Google Drive). Depois é só clicar **▶ Começar**.
+
+**Como usar no dia a dia:** abra **só** o projeto desejado no CapCut → atalho → **Começar**.
+Não mexa no mouse durante os ~15s de cliques; o resto roda enquanto você trabalha.
+
+> O CapCut pode estar em Português **ou** Inglês (o programa entende os dois).
+
 ## Por que funciona assim
 
 O CapCut PC não exporta trechos da timeline pela automação (teclas I/O não respondem,

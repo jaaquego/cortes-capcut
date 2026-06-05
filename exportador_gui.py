@@ -266,8 +266,32 @@ class App:
         self._draw_step(i)
 
     # ---------- execucao ----------
+    def _garantir_destino(self):
+        """Na 1a vez (ou se a pasta sumiu), pede a pasta de destino e salva."""
+        import exportar
+        cfg = exportar.carregar_config()
+        d = cfg["destino"]["pasta_local"]
+        if d and os.path.isdir(d):
+            return True
+        from tkinter import filedialog, messagebox
+        try: self.root.attributes("-topmost", False)
+        except Exception: pass
+        messagebox.showinfo("Configuração inicial",
+                            "Escolha a pasta onde salvar os cortes.\n"
+                            "(ex.: uma pasta dentro do seu Google Drive)", parent=self.root)
+        pasta = filedialog.askdirectory(title="Pasta de destino dos cortes", parent=self.root)
+        try: self.root.attributes("-topmost", True)
+        except Exception: pass
+        if not pasta:
+            return False
+        cfg["destino"]["pasta_local"] = pasta
+        exportar.salvar_config(cfg)
+        return True
+
     def start(self):
         if self.running:
+            return
+        if not self._garantir_destino():
             return
         self.running = True
         self.result_folder = None

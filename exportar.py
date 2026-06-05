@@ -29,7 +29,25 @@ CONFIG = os.path.join(HERE, "config.json")
 
 def carregar_config():
     with open(CONFIG, "r", encoding="utf-8") as fh:
-        return json.load(fh)
+        cfg = json.load(fh)
+    # portabilidade: expande variaveis (%USERPROFILE% etc.) e aplica defaults
+    cfg.setdefault("destino", {})
+    cfg.setdefault("vigia", {})
+    d = cfg["destino"].get("pasta_local") or ""
+    cfg["destino"]["pasta_local"] = os.path.expandvars(os.path.expanduser(d)) if d else ""
+    t = cfg["vigia"].get("pasta_export_capcut") or ""
+    if t:
+        t = os.path.expandvars(os.path.expanduser(t))
+    cfg["vigia"]["pasta_export_capcut"] = t
+    cfg["vigia"].setdefault("deletar_apos_cortar", True)
+    cfg["vigia"].setdefault("tolerancia_duracao_s", 3)
+    cfg.setdefault("nome_arquivo", "{projeto} {nome}")
+    return cfg
+
+
+def salvar_config(cfg):
+    with open(CONFIG, "w", encoding="utf-8") as fh:
+        json.dump(cfg, fh, ensure_ascii=False, indent=2)
 
 
 def slug(s):

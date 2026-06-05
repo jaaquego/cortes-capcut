@@ -91,8 +91,8 @@ def _esperar_e_fechar(pastas, antes, timeout=1800):
     # 4) garantia: se o aviso ainda estiver la', clica Cancelar
     try:
         itens = ocr_tela.ler(im=auto._grab())
-        canc = auto.achar(itens, "cancelar")
-        if canc and auto.achar(itens, "compartilhar", "tiktok", "youtube", "salvo"):
+        canc = auto.achar(itens, "cancelar", "cancel")
+        if canc and auto.achar(itens, "compartilhar", "share", "tiktok", "youtube", "salvo", "saved"):
             auto.clicar(canc)
     except Exception:
         pass
@@ -100,9 +100,9 @@ def _esperar_e_fechar(pastas, antes, timeout=1800):
 
 
 def _confirmar_export(itens):
-    """Acha o botao 'Exportar' de CONFIRMAR no dialogo (mesma linha do 'Cancelar')."""
-    canc = auto.achar(itens, "cancelar")
-    exps = [i for i in itens if "exportar" in i["texto"].lower() and i["conf"] > 0.4]
+    """Acha o botao de CONFIRMAR (Exportar/Export) no dialogo, na linha do Cancelar/Cancel."""
+    canc = auto.achar(itens, "cancelar", "cancel")
+    exps = [i for i in itens if "export" in i["texto"].lower() and i["conf"] > 0.4]
     if canc:
         perto = [i for i in exps if abs(i["cy"] - canc["cy"]) < 40 and i["cx"] < canc["cx"]]
         if perto:
@@ -158,10 +158,10 @@ def executar(cb=None, abrir=False):
 
     # 2) abrir o diálogo e confirmar
     _cb(1, "abrindo o diálogo no CapCut…")
-    if auto.achar(itens, "exportar para"):
+    if auto.achar(itens, "exportar para", "export to"):
         itens2 = itens
     else:
-        topo = min([i for i in itens if "exportar" in i["texto"].lower()],
+        topo = min([i for i in itens if "export" in i["texto"].lower()],
                    key=lambda i: i["cy"])
         auto.clicar(topo)
         time.sleep(3)
@@ -171,7 +171,7 @@ def executar(cb=None, abrir=False):
         except Exception:
             auto._HWND = None
         itens2 = auto.ler()
-    if not auto.achar(itens2, "exportar para"):
+    if not auto.achar(itens2, "exportar para", "export to"):
         raise RuntimeError("Não consegui abrir a janela de geração do vídeo no CapCut.")
     conf = _confirmar_export(itens2)
     if not conf:
