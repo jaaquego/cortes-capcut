@@ -56,6 +56,10 @@ PASSOS = [
     "Aguardar a renderização",
     "Cortar e organizar nas pastas",
 ]
+PASSOS_CORTE = [
+    "Identificar o projeto",
+    "Cortar e organizar nas pastas",
+]
 
 
 class App:
@@ -67,6 +71,8 @@ class App:
         self.running = False
         self.result_folder = None
         self._pausar_pin = False   # pausa a fixacao no canto (ex.: enquanto um popup esta aberto)
+        self.modo = "completo"     # "completo" (exporta+corta) ou "corte" (so' corta)
+        self._video_corte = None
 
         root.title("Cortes CapCut")
         root.configure(bg=BG)
@@ -88,7 +94,7 @@ class App:
         self.f_link  = tkfont.Font(family="Segoe UI", size=9, underline=True)
 
         self._build()
-        self._center(440, 626)
+        self._center(440, 684)
         self._tick()
         self.root.update_idletasks()
         self._reposicionar()                   # ja' posiciona ANTES de aparecer
@@ -157,19 +163,11 @@ class App:
         self.dest_lb.pack(side="left")
         self._atualizar_destino_label()
 
-        # passos
+        # passos (montados dinamicamente conforme o modo)
         self.card = tk.Frame(self.root, bg=CARD)
         self.card.pack(fill="x", padx=22, pady=6)
         self.steps = []
-        for i, nome in enumerate(PASSOS):
-            row = tk.Frame(self.card, bg=CARD)
-            row.pack(fill="x", padx=12, pady=(10 if i == 0 else 6, 6 if i < len(PASSOS)-1 else 12))
-            cv = tk.Canvas(row, width=24, height=24, bg=CARD, highlightthickness=0)
-            cv.pack(side="left")
-            lb = tk.Label(row, text=nome, bg=CARD, fg=SUB, font=self.f_step)
-            lb.pack(side="left", padx=10)
-            self.steps.append({"canvas": cv, "label": lb, "state": "idle"})
-            self._draw_step(i)
+        self._montar_passos(PASSOS)
 
         # detalhe (status atual)
         self.detail = tk.Label(self.root, text="Pronto pra começar.",
@@ -184,12 +182,39 @@ class App:
         self.link.pack(anchor="w", pady=(2, 0))
         self.link.bind("<Button-1>", lambda e: self._abrir_pasta())
 
-        # botao
+        # botao principal (exportar + cortar)
         self.btn = tk.Frame(self.root, bg=ACCENT, cursor="hand2")
-        self.btn.pack(fill="x", padx=22, pady=(10, 20))
+        self.btn.pack(fill="x", padx=22, pady=(10, 4))
         self.btn_lb = tk.Label(self.btn, text="▶   Começar", bg=ACCENT, fg="#06121A", font=self.f_btn)
         self.btn_lb.pack(pady=11)
+
+        # botao secundario (so' cortar um video ja' exportado)
+        self.btn2 = tk.Frame(self.root, bg=CARD2, cursor="hand2")
+        self.btn2.pack(fill="x", padx=22, pady=(0, 18))
+        self.btn2_lb = tk.Label(self.btn2, text="✂   Só cortar (já exportei)",
+                                bg=CARD2, fg=TXT, font=self.f_small)
+        self.btn2_lb.pack(pady=8)
+        for w in (self.btn2, self.btn2_lb):
+            w.bind("<Button-1>", lambda e: self.start_corte())
+            w.bind("<Enter>", lambda e: (self.btn2.config(bg="#2C3146"), self.btn2_lb.config(bg="#2C3146")))
+            w.bind("<Leave>", lambda e: (self.btn2.config(bg=CARD2), self.btn2_lb.config(bg=CARD2)))
+
         self._btn_enable(True)
+
+    def _montar_passos(self, lista):
+        """(Re)constroi as linhas de passos conforme a lista dada."""
+        for w in self.card.winfo_children():
+            w.destroy()
+        self.steps = []
+        for i, nome in enumerate(lista):
+            row = tk.Frame(self.card, bg=CARD)
+            row.pack(fill="x", padx=12, pady=(10 if i == 0 else 6, 6 if i < len(lista)-1 else 12))
+            cv = tk.Canvas(row, width=24, height=24, bg=CARD, highlightthickness=0)
+            cv.pack(side="left")
+            lb = tk.Label(row, text=nome, bg=CARD, fg=SUB, font=self.f_step)
+            lb.pack(side="left", padx=10)
+            self.steps.append({"canvas": cv, "label": lb, "state": "idle"})
+            self._draw_step(i)
 
     def _reposicionar(self):
         """Forca a janela pro canto inferior direito + topmost (via win32, confiavel)."""
@@ -240,9 +265,16 @@ class App:
             self.btn_lb.bind("<Button-1>", lambda e: self.start())
             self.btn.bind("<Enter>", lambda e: (self.btn.config(bg=ACCENT2), self.btn_lb.config(bg=ACCENT2)))
             self.btn.bind("<Leave>", lambda e: (self.btn.config(bg=ACCENT), self.btn_lb.config(bg=ACCENT)))
+            # botao secundario "Só cortar"
+            self.btn2.config(bg=CARD2); self.btn2_lb.config(bg=CARD2, fg=TXT)
+            for w in (self.btn2, self.btn2_lb):
+                w.bind("<Button-1>", lambda e: self.start_corte())
+                w.bind("<Enter>", lambda e: (self.btn2.config(bg="#2C3146"), self.btn2_lb.config(bg="#2C3146")))
+                w.bind("<Leave>", lambda e: (self.btn2.config(bg=CARD2), self.btn2_lb.config(bg=CARD2)))
         else:
             self.btn.config(bg=CARD2); self.btn_lb.config(bg=CARD2, fg=SUB)
-            for w in (self.btn, self.btn_lb):
+            self.btn2_lb.config(fg=SUB)
+            for w in (self.btn, self.btn_lb, self.btn2, self.btn2_lb):
                 w.unbind("<Button-1>"); w.unbind("<Enter>"); w.unbind("<Leave>")
 
     # ---------- desenho dos passos ----------
@@ -400,26 +432,59 @@ class App:
             return True
         return self._definir_destino()
 
-    def start(self):
-        if self.running:
-            return
-        if not self._garantir_destino():
-            return
+    def _iniciar(self, modo, passos):
+        """Prepara a UI e dispara o worker no modo dado."""
+        self.modo = modo
         self.running = True
         self.result_folder = None
         self.result.pack_forget()
-        for i in range(len(self.steps)):
-            self._set_state(i, "idle")
+        self._montar_passos(passos)
         self.active = None
         self.detail.config(text="Iniciando…", fg=SUB)
         self._btn_enable(False, "Trabalhando…")
         threading.Thread(target=self._worker, daemon=True).start()
 
+    def start(self):
+        """Modo completo: exporta no CapCut + corta + organiza."""
+        if self.running:
+            return
+        if not self._garantir_destino():
+            return
+        self._iniciar("completo", PASSOS)
+
+    def start_corte(self):
+        """Modo só cortar: pega um vídeo JÁ exportado e só corta/organiza."""
+        if self.running:
+            return
+        if not self._garantir_destino():
+            return
+        # escolhe o vídeo já exportado
+        from tkinter import filedialog
+        self._pausar_pin = True
+        try: self.root.attributes("-topmost", False)
+        except Exception: pass
+        import os as _os
+        video = filedialog.askopenfilename(
+            title="Escolha o vídeo já exportado (a timeline inteira)",
+            initialdir=_os.path.join(_os.path.expanduser("~"), "Downloads"),
+            filetypes=[("Vídeos", "*.mp4 *.mov *.mkv"), ("Todos", "*.*")],
+            parent=self.root)
+        self._pausar_pin = False
+        try: self.root.attributes("-topmost", True)
+        except Exception: pass
+        if not video:
+            return
+        self._video_corte = video
+        self._iniciar("corte", PASSOS_CORTE)
+
     def _worker(self):
         def cb(i, d=""):
             self.q.put(("step", i, d))
         try:
-            if DEMO:
+            if self.modo == "corte":
+                import exportar_auto
+                raiz, n = exportar_auto.executar_corte(self._video_corte, cb=cb, abrir=False)
+            elif DEMO:
                 raiz, n = self._demo(cb)
             else:
                 import exportar_auto

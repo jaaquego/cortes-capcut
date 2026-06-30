@@ -202,6 +202,44 @@ def executar(cb=None, abrir=False):
     return raiz, n
 
 
+def executar_corte(video, cb=None, abrir=False):
+    """Modo SÓ CORTAR: pega um vídeo JÁ exportado (timeline inteira) e só corta/
+    organiza nas pastas — sem mexer no CapCut. Identifica o projeto pelo nome do
+    arquivo (detecta rótulos 'ESTRUTURA 1 - V1' E 'E1-V1'). Retorna (pasta, n)."""
+    def _cb(i, d=""):
+        if cb:
+            try: cb(i, d)
+            except Exception: pass
+
+    if not video or not os.path.exists(video):
+        raise RuntimeError("Arquivo de vídeo não encontrado.")
+    cfg = exportar.carregar_config()
+    destino = cfg["destino"]["pasta_local"]
+    if not destino:
+        raise RuntimeError("Defina a pasta de destino primeiro.")
+
+    _cb(0, "identificando o projeto pelo nome do arquivo…")
+    proj = vigiar.achar_projeto(video)
+    if not proj:
+        raise RuntimeError("Não identifiquei o projeto pelo nome do arquivo. "
+                           "Renomeie o arquivo com o nome do projeto do CapCut, "
+                           "ou use o modo completo (▶ Começar).")
+    import segments as seg
+    r = seg.extrair(proj)
+    if not r["segmentos"]:
+        raise RuntimeError(f"O projeto '{proj}' não tem as caixas ESTRUTURA-VY / E1-V1.")
+
+    _cb(1, f"cortando {len(r['segmentos'])} vídeos e organizando nas pastas…")
+    ok, total, raiz = exportar.gerar_cortes(proj, video, destino,
+                                            cfg.get("nome_arquivo", "{projeto} {nome}"),
+                                            log=lambda m: None)
+    n = _contar_clipes(raiz)
+    if abrir and raiz and os.path.isdir(raiz):
+        try: os.startfile(raiz)
+        except Exception: pass
+    return raiz, n
+
+
 def main():
     def log(i, d):
         print(f"[{i+1}/4] {PASSOS[i]}: {d}")
